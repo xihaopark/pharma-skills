@@ -251,7 +251,7 @@ example than from prose.
 
 | Function | Purpose |
 |---|---|
-| `summarizeMilestoneTime(output)` | Summarize triggering times of all milestones across replicates. Returns a `data.frame` with a `plot` method. Input is `controller$get_output()`. **The summary is non-binding** — every replicate runs to completion in simulation, so these times do not reflect early stopping. When the design has a binding-interim rule, also report the binding expected duration derived post-hoc from saved decision flags. |
+| `summarizeMilestoneTime(output)` | Summarize triggering times of all milestones across replicates. Returns a `data.frame` with a `plot` method. Input is `controller$get_output()`. **Precondition — call only when the design has NO binding early-stop rule.** A binding rule includes binding futility, binding efficacy at any milestone, arm-dropping in dose-selection / seamless designs, response-adaptive randomization, or any decision flag that, in a real trial, would change which subsequent milestones occur. Under any such rule, every replicate still runs through every milestone in the simulation (TS does not stop early), so the times this function reports describe *what would have happened if the trial ran to every milestone* — not the realized duration. **Do not call** in that case; compute expected duration post-hoc from saved decision flags (see "Trials never stop early in simulation" gotcha below). With non-binding futility (the trial is permitted to continue regardless of crossing) the function is appropriate; still label any plot/caption as "non-binding milestone times" so a reader cannot confuse them with a binding-aware expected duration. **Multi-scenario reports**: never include a single un-labeled milestone-time plot from one cherry-picked scenario. Either facet by scenario, overlay distributions with a legend, or replace the plot with a per-scenario timing column already in the OC table. |
 
 ---
 
@@ -285,6 +285,33 @@ too. Pick distinctive custom names.
 Canonical reference: the "Automatically Saved Results At Triggered
 Milestones" table in
 https://zhangh12.github.io/TrialSimulator/articles/actionFunctions.html.
+
+### Global dropout — no per-endpoint variation
+
+`trial(dropout = ...)` accepts **one** dropout function. It runs once
+per patient; the resulting dropout time censors every TTE endpoint
+and zeroes out any non-TTE readouts whose readout-time exceeds it.
+**There is no way to assign different dropout distributions or rates
+to different endpoints**, and the package does not validate against
+this confusion — silently mis-specifying it just won't fail.
+
+When the user requests endpoint-specific dropout (e.g., "5%/year for
+PFS, 2%/year for OS"), do not silently collapse to a single rate.
+Surface the limitation: explain that TS uses one dropout time per
+patient, ask the user which behavior they want, and offer the three
+practical options:
+
+1. **Use the most conservative single rate** across endpoints (most
+   common choice; mildly overcensors the longer-tailed endpoint).
+2. **Pick a clinically dominant endpoint** (e.g., the primary) and
+   use its rate as the global rate; document the approximation.
+3. **Use a custom dropout function** that draws a per-patient
+   dropout time from a mixture or compound distribution that
+   approximates the multi-endpoint behavior.
+
+Get the user's choice on record before writing the script. The
+parameter table's "Source / Notes" column should mark the resulting
+global rate as `user (translated)` or `derived` with the rationale.
 
 ### `add_regimen` must precede `add_arms`
 
