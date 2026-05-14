@@ -43,48 +43,25 @@ Use these inside `endpoint(generator = ...)`.
 
 ### endpoint() grouping rule
 
-Each `endpoint()` call defines **one set of endpoints generated
-together by a single generator function**. Endpoints across
-**separate** `endpoint()` calls are independent — the package
-invokes each set's generator independently.
+Endpoints that need to be correlated must share **one** `endpoint()`
+call (the joint generator returns one column per endpoint, plus
+`<name>_event` for TTE). Independent endpoints go in separate
+`endpoint()` calls. Single-endpoint calls can use a base-R RNG
+(`rexp`, `rnorm`, `rbinom`); multi-endpoint calls require a custom
+or built-in joint generator returning a `data.frame`.
 
-Two orthogonal decisions:
-
-- **How many endpoints per `endpoint()` call?** This is determined by
-  how endpoints group into independent vs. correlated sets. Endpoints
-  that need to be correlated must share one `endpoint()` call;
-  endpoints that are independent of each other can be split across
-  separate calls.
-- **Which generator to use?**
-  - If a call defines exactly **one** endpoint, the generator can be
-    a simple base-R RNG (`rexp`, `rnorm`, `rbinom`, ...) or a custom
-    function.
-  - If a call defines **two or more** endpoints together, the
-    generator MUST be a custom (or built-in) joint generator returning
-    a `data.frame` with one column per endpoint (plus `<name>_event`
-    columns for TTE endpoints). Base-R RNGs only emit one variable,
-    so they cannot be used for multi-endpoint calls.
-
-> **Custom data models — always on the table.** Whenever the user
-> has their own data model (a specific distribution, mechanistic
-> model, empirical resampling, a custom copula, NORTA, anything),
-> help implement it as a custom generator. Base-R RNGs and built-in
-> joint generators are convenient defaults, not the only options.
-> The contract: `function(n, ...)` returning a `data.frame` with one
-> column per endpoint name (plus `<name>_event` columns for TTE).
-> First argument must be `n` — wrap if it isn't (e.g., `base::sample`
-> uses `x`). See `?endpoint` and `building_blocks.md` for details.
+Custom generators are always on the table — any user-supplied data
+model (specific distribution, mechanistic, empirical, custom
+copula, NORTA) is a candidate. Contract: `function(n, ...)`
+returning a `data.frame` with one column per endpoint name (plus
+`<name>_event` for TTE). First argument must be `n` — wrap if it
+isn't (e.g., `base::sample` uses `x`).
 
 Examples:
 
-- PFS and OS, modeled as independent → two `endpoint()` calls, each
-  with `rexp`.
-- PFS and OS, modeled as correlated → one `endpoint()` call with
-  `CorrelatedPfsAndOs2` (or a custom joint generator).
-- PFS+OS correlated, plus three biomarkers correlated among
-  themselves but independent of PFS/OS → one `endpoint()` call for
-  {pfs, os} with a joint generator, and another `endpoint()` call for
-  the three biomarkers with a different joint generator.
+- PFS and OS, independent → two `endpoint()` calls, each with `rexp`.
+- PFS and OS, correlated → one `endpoint()` call with `CorrelatedPfsAndOs2` (or a custom joint generator).
+- PFS+OS correlated, plus three biomarkers correlated among themselves but independent of PFS/OS → one `endpoint()` call for {pfs, os}, another for the three biomarkers.
 
 ### TTE — piecewise / non-PH
 
@@ -180,13 +157,57 @@ generators need.
 |---|---|
 | Medians + Kendall's tau, Cox/LR planned | `CorrelatedPfsAndOs2` directly (no solver) |
 | Medians + Pearson correlation, non-Cox analysis | `solveThreeStateModel` → `CorrelatedPfsAndOs3` (hardcode literals) |
-| Survival probability at K landmarks | `solvePiecewiseConstantExponentialDistribution` → `PiecewiseConstantExponentialRNG` |
+| Survival probability at K landmarks, independent endpoint | `solvePiecewiseConstantExponentialDistribution` → `PiecewiseConstantExponentialRNG` |
+| Survival probability at K landmarks, correlated with other endpoints (NORTA) | `solvePiecewiseConstantExponentialDistribution` → `qPiecewiseExponential` (see recipe below) |
 | Marker subgroup medians + overall median (or vice versa) | `solveMixtureExponentialDistribution` → custom mixture generator |
 | Dropout at 2 landmarks | `weibullDropout` → `dropout = rweibull, scale, shape` |
 | Dropout at 1 landmark | exponential is the simple default: `dropout = rexp, rate = -log(1-p)/t`. If the user has a different model in mind (e.g., heavier early dropout, time-varying), build a custom dropout function whose first argument is `n` and pass it as `trial(dropout = my_fn, ...)`. |
 | Constant uniform accrual | none — `accrual_rate = data.frame(end_time = Inf, piecewise_rate = N)` |
 | Ramp-up accrual | none — multi-row `accrual_rate` |
 | Recruitment pause window | none — set `piecewise_rate` near zero for the pause window |
+
+### Bridge: piecewise-exp marginal in a NORTA copula
+
+Given landmark survival probabilities for one endpoint that needs to be
+correlated with others, the path is:
+`solvePiecewiseConstantExponentialDistribution` → `qPiecewiseExponential` →
+`simdata::simdesign_norta`. The non-obvious detail is the length mismatch:
+the solver returns K rows (one per landmark), but `qPiecewiseExponential`
+requires `length(piecewise_risk) == length(times) + 1` — so you must
+**append one tail hazard** for the interval beyond the last landmark.
+Common default: repeat the last hazard (smooth extrapolation).
+
+```r
+sched <- solvePiecewiseConstantExponentialDistribution(
+  surv_prob = c(0.80, 0.55, 0.30),
+  times     = c(6, 12, 24)
+)
+# sched: data.frame(end_time, piecewise_risk), K=3 rows.
+
+q_pfs <- function(p) {
+  qPiecewiseExponential(
+    p              = p,
+    times          = sched$end_time,                                       # K
+    piecewise_risk = c(sched$piecewise_risk, sched$piecewise_risk[nrow(sched)])  # K+1
+  )
+}
+
+design <- simdesign_norta(
+  dist             = list(q_pfs,
+                          function(p) qexp(p, rate = log(2) / 18)),         # OS marginal
+  cor_target_final = matrix(c(1, 0.6, 0.6, 1), nrow = 2),
+  seed_initial     = sample(.Machine$integer.max, 1)                        # see seeds note in building_blocks.md
+)
+```
+
+Inside the generator that wraps this design, also pass
+`seed = sample(.Machine$integer.max, 1)` to `simulate_data()` — distinct
+from `seed_initial`. See the NORTA worked example in `building_blocks.md`
+for the full seed convention.
+
+After defining the endpoint, validate that realized survival at the
+landmark times matches the input (small Monte Carlo check) — confirms
+both the length-bridge and the NORTA construction.
 
 ---
 
@@ -311,7 +332,8 @@ practical options:
 
 Get the user's choice on record before writing the script. The
 parameter table's "Source / Notes" column should mark the resulting
-global rate as `user (translated)` or `derived` with the rationale.
+global rate as `protocol (derived)` or `derived` with the rationale,
+per the controlled vocabulary in `report.md` §2.
 
 ### `add_regimen` must precede `add_arms`
 
@@ -323,6 +345,19 @@ tr$add_arms(sample_ratio, ...)   # errors otherwise
 
 ### `save_custom_data` namespace + `overwrite`
 
+**Prefer `trial$save()` + `trial$get_output()` for scalar state.**
+When the value being passed between milestones is a single
+number, flag, string, or integer (e.g., the index of the selected
+arm, an interim p-value, a binary "gate passed" flag), use
+`trial$save(value, name)` at the saving milestone and
+`trial$get_output()` at the retrieving milestone — the scalar then
+also appears in `controller$get_output()` as a column, available
+to post-hoc analysis. `trial$save_custom_data()` is appropriate
+only when the value is **non-tabular** (a list, a fitted model
+object, a data frame) and would not fit cleanly as a column.
+
+For the cases where `save_custom_data()` is the right tool:
+
 `save()` and `save_custom_data()` share a name registry. Calling both
 with the same `name` errors with "X has been used to name something in
 custom data." Use **distinct** names.
@@ -333,16 +368,16 @@ replicate 2 errors on the duplicate name. **Always set
 `overwrite = TRUE` on `save_custom_data()`.**
 
 ```r
-trial$save_custom_data(value = best_arm, name = "selected", overwrite = TRUE)
-trial$save(value = best_arm, name = "selected_arm")
+# Non-tabular state: a fitted Cox model object passed to a later milestone.
+trial$save_custom_data(value = cox_fit, name = "cox_model", overwrite = TRUE)
 ```
 
 When retrieving in a later milestone, guard against `NULL` (the
 saving milestone may not have fired):
 
 ```r
-selected <- trial$get(name = "selected")
-if (is.null(selected)) selected <- "<fallback>"
+model <- trial$get(name = "cox_model")
+if (is.null(model)) model <- <fallback>
 ```
 
 ### Trials never stop early in simulation

@@ -6,7 +6,8 @@ description: >
   pairs each block of code with rationale, parameters, and
   operating characteristics.
 metadata:
-  version: 0.2.5
+  version: 0.2.16
+  trialsimulator_min_version: "1.18.4"
 ---
 
 # TrialSimulator Skill
@@ -17,6 +18,35 @@ a thinking framework, a cached API reference, a TrialSimulator-specific
 function catalog, and a report-writing guide. **It is not a script.**
 You bring general engineering, programming, and biostatistics
 knowledge; this skill adds what is specific to TrialSimulator.
+
+## Loading announcement
+
+Whenever this skill is loaded, the agent calls
+`packageVersion("TrialSimulator")` (fast, local — no network) and
+compares the installed version against
+`metadata.trialsimulator_min_version` from the YAML frontmatter
+above. The first line of the agent's first response reports the
+result.
+
+Three outcomes:
+
+- **Installed ≥ required** — `clinical-trial-simulation v<metadata.version> loaded — TrialSimulator <ts_version>, R <r_version>`. Proceed.
+- **Installed < required** — `clinical-trial-simulation v<metadata.version> loaded — TrialSimulator <ts_version> installed, **≥ <trialsimulator_min_version> required**. R <r_version>.` Then offer to update on the next turn: *"Want me to run `remotes::install_github('zhangh12/TrialSimulator')` now? (y/n)"* — on confirm, run it and re-check; on decline, stop until the user resolves. Do not begin any simulation work until the version requirement is met.
+- **Not installed** — `clinical-trial-simulation v<metadata.version> loaded — TrialSimulator not installed. R <r_version>.` Offer to install: *"Want me to run `remotes::install_github('zhangh12/TrialSimulator')` now? (y/n)"*
+
+Substitutions:
+
+- `<metadata.version>` from this file's YAML frontmatter.
+- `<trialsimulator_min_version>` from this file's YAML frontmatter.
+- `<ts_version>` from `packageVersion("TrialSimulator")`.
+- `<r_version>` from `R.version.string` (the `x.y.z` portion).
+
+No network call fires on load. The only network use is the optional
+remediation install on user confirmation.
+
+After the announcement line, briefly greet the user and ask about
+the trial setting — never ask what design type, discover it through
+conversation (see "Two user modes" below).
 
 ## Files in this skill
 
@@ -33,13 +63,33 @@ is the source of truth.
 
 ## Package source
 
-Install TrialSimulator from GitHub HEAD, not CRAN — this skill tracks GitHub:
+This skill targets a known-good baseline of TrialSimulator declared
+in `metadata.trialsimulator_min_version` of the YAML frontmatter
+above. **At load, only a local `packageVersion("TrialSimulator")`
+check runs — no automatic `install_github`, no network call.** The
+load-time check + offer/auto behavior is specified in "Loading
+announcement".
+
+If TrialSimulator is missing or below the minimum, the canonical
+remediation is:
 
 ```r
 remotes::install_github("zhangh12/TrialSimulator")
 ```
 
-Capture `packageVersion("TrialSimulator")` in `main.R` and surface it in §0 of the report.
+The agent offers to run this when the load-time check detects a
+shortfall and only runs it on user confirmation. The user can also
+update outside the session and reload the skill.
+
+When bumping `metadata.version`, audit whether
+`trialsimulator_min_version` also needs to move — e.g., if the
+skill adopts a TS feature or fix landed in a newer release.
+
+Surface three versions in §0 of the report: TrialSimulator, R, and
+the skill. The agent looks each value up once before writing the
+report and pastes the literal string into the §0 table. No R chunks,
+no runtime lookup, no `readRDS`. Slight staleness on re-renders is
+acceptable; the running environment is assumed stable.
 
 ## Package philosophy
 
@@ -114,9 +164,23 @@ action_<name> <- function(trial, ...) {
 ```
 
 Signature is `function(trial, ...)`. Use distinct `name`s across
-`trial$save()` calls. For state between milestones use
-`trial$save_custom_data(..., overwrite = TRUE)` + `trial$get(name)`
-(see helpers.md gotchas).
+`trial$save()` calls.
+
+**Passing state between milestones — prefer `trial$save()` +
+`trial$get_output()` for scalars.** When milestone A computes a
+single value (number, flag, string, integer ID) that milestone B
+needs to read, save it with `trial$save(value, name)` at A and
+retrieve it at B with `trial$get_output()` (the in-progress
+per-replicate row, sanctioned for use inside actions). This keeps
+the value in the audit trail — it appears as a column in
+`controller$get_output()` after the run, useful for post-hoc
+analysis and report tables.
+
+Reserve `trial$save_custom_data(..., overwrite = TRUE)` +
+`trial$get(name)` for **non-tabular state**: a fitted model object,
+a list, a data frame — anything that does not fit cleanly as a
+column in the per-replicate output. See `helpers.md` gotchas for
+the namespace and `overwrite = TRUE` rules.
 
 ## R6 method visibility — only use the documented public methods
 
@@ -194,24 +258,102 @@ mentioned X — I didn't use it; where does it fit?"), and ask for
 missing pieces with one sentence of why each matters. Silently
 dropping user-supplied information is a trust killer.
 
-### Plain language for argument collection
+### Plain language during interaction
 
-Every question is collecting an argument value for a building-block
-function — but ask in clinical terms, not as `n_patients = ?`. "How
-many patients do you plan to enroll?" gets the same value with less
-friction.
+Every question to the user is collecting an argument value for a
+building-block function — but ask in **clinical / statistical terms**,
+not in package vocabulary. The same applies when *confirming* the
+parameter table, the analysis plan, or the chosen design: describe
+what the design *does*, not how the code implements it. A
+biostatistician unfamiliar with TrialSimulator should be able to
+follow the conversation with no R reference open.
+
+| Avoid (package vocabulary) | Prefer (clinical / statistical terms) |
+|---|---|
+| "use `fitLogrank` for the OS test" | "OS is tested with a one-sided log-rank test" |
+| "milestone fires at `enrollment(n=500, min_treatment_duration=6)`" | "the analysis is performed 6 months after the last patient is enrolled" |
+| "we'll call `set_duration(54)` if pooled events < 220" | "the trial duration is extended from 48 to 54 months if pooled events at month 24 fall below 220" |
+| "boundary z = 2.523 from `asOF` spending" | "interim efficacy boundary z = 2.523 (Lan-DeMets O'Brien-Fleming spending, IF = 0.71)" |
+| "`StaggeredRecruiter` with `accrual_rate = data.frame(...)`" | "piecewise-constant accrual: 5/mo for the first 3 months, 15/mo for the next 3, then 25/mo until enrollment completes" |
+| "the action saves `gate_pass`" | "the gate decision is recorded for each replicate" |
+| "use `CorrelatedPfsAndOs2`" | "PFS and OS are modeled jointly via a Gumbel copula with Kendall's τ = 0.5 and exponential margins" |
+
+Code-level vocabulary is appropriate in **three contexts only**:
+implementation mode where the user pasted code, debugging an error
+together, or the report itself (whose audience is a QC reviewer who
+must verify the implementation). During design discovery, parameter
+confirmation, and progress updates, default to clinical /
+statistical language.
+
+### Don't silently read referenced documents
+
+When a prompt references an external SAP, protocol, or other
+document, the prompt itself distills the relevant content — that
+is the prompt-writer's job. **Do not silently read or fetch the
+referenced document**: no unprompted `Read` on a local PDF, no
+`WebFetch`, no `curl`. A long SAP can cost minutes of context and
+time and may reintroduce ambiguity the prompt was written to
+resolve.
+
+If something the prompt does not cover would meaningfully change
+the plan and the referenced document plausibly holds the answer,
+**ask the user first**. Name the section or topic, explain why
+reading it would help, and let the user choose: authorize a narrow
+read, paraphrase from memory, or leave the value as `assumed` with
+a default. Reading is on the table when the user authorizes it —
+just never silently.
+
+When the prompt itself explicitly tells the agent to consult the
+source (e.g., "see Section 7.3 of the SAP for the boundary table"),
+read narrowly to the cited section, then stop.
+
+### First response is the plan
+
+The agent's first substantive response — before any R execution,
+derivation script, or simulation — is **the plan**, not the result.
+Every prompt gets one. Aim to have it in the user's hands within a
+couple of minutes; soft expectation.
+
+The plan contains: a restate of the design; the §2 parameter table
+v0 with `protocol` / `assumed` / `derived (pending)` tags per
+`report.md`; a bullet list of intended supplements (or "no
+supplements needed"); the `assumed` rows called out for
+confirmation; and the next step with a rough time estimate.
+
+**Implementation-mode caveat.** When the user says "skip the Q&A,"
+the plan condenses to one paragraph (*"Implementation mode. Plan:
+<N> supplements → main.R → sanity → production. Starting now."*)
+but still posts. Skipping Q&A is not skipping visibility.
 
 ### Confirmation gates
 
-Two confirmation gates before any expensive work:
+Three confirmation points across a run, posted in this order:
 
-1. **Parameter table.** Present every value (distribution parameters,
-   readout times, sample size, accrual, dropout, milestone triggers,
-   stratification factors, helper-derived literals). User confirms.
-2. **Save plan.** For every operating characteristic the user wants
-   to know, show which value will be saved in which action function.
-   Catches save↔OC mismatches that are expensive to fix
+1. **The plan** — see "First response is the plan" above. The first
+   gate is the plan, not a complete parameter table; the table is
+   v0 with `derived (pending)` rows for anything a supplement will
+   resolve.
+2. **The resolved parameter table.** After supplements have run and
+   the `pending` rows are filled in, present the final parameter
+   table. The user confirms the literals.
+3. **The save plan.** For every operating characteristic the user
+   asked about, show which value will be saved in which action
+   function. Catches save ↔ OC mismatches that are expensive to fix
    post-simulation.
+
+For implementation-mode prompts that say "skip Q&A," gates (2) and
+(3) collapse into visible turn-by-turn progress (see "No silent
+work" below) rather than explicit confirmation requests, but the
+artifacts (resolved parameter table, save plan) still appear in
+the conversation.
+
+### No silent work
+
+Each supplement and each validation round (sanity, calibration,
+production) is its own visible turn — write, run, render are
+separate announced turns, never bundled into a single silent
+stretch. Tool calls expected to take more than ~60 seconds get a
+one-line heads-up with a rough estimate before launching.
 
 ### Don't ask about internal workflow
 
@@ -224,6 +366,17 @@ decisions. Don't ask; just do.
   user doesn't decide whether to run a small sanity check before
   production — the agent does it as part of producing a working
   script. Don't ask.
+
+  **Carve-out — calibration that produces cited literals.** If a
+  calibration script computes a value that ends up in the §2
+  parameter table, in `main.R` / `actions.R`, or anywhere else
+  the report cites it, the script is a **citable artifact**, not
+  internal workflow. It follows the supplement rule (see
+  `report.md` "Derivations and supplements"): script in
+  `scripts/derivations/`, rendered doc in `supplements/`,
+  bidirectional cross-references with the main report. "Internal
+  workflow" applies only to the testing iteration on `main.R`
+  itself.
 - **Seed.** `seed = NULL` (auto per-replicate, recorded in the
   output) is the correct default for simulation studies. Don't ask
   the user about it. Use a fixed integer seed only if the user
@@ -253,12 +406,13 @@ decisions. Don't ask; just do.
   packages when both can do the job. See `helpers.md` for the
   catalog. The package's design intent is that you reach for its
   functions reflexively.
-- **Runnable dummies for unspecified decision rules.** When the user
-  says "we'll decide based on data" without specifying the rule,
-  write a small data-driven dummy and label it: `# DUMMY: replace
-  with actual rule`. Guard against edge cases (`length() > 0` before
-  `remove_arms`, etc.). A dummy that runs is better than a TODO that
-  blocks validation.
+- **Runnable placeholders for unspecified decision rules.** When the
+  user says "we'll decide based on data" without specifying the rule,
+  write a small data-driven placeholder and label it: `# PLACEHOLDER:
+  replace with actual rule`. Use the same `PLACEHOLDER` tag in the §2
+  parameter table (see `report.md`). Guard against edge cases
+  (`length() > 0` before `remove_arms`, etc.). A placeholder that
+  runs is better than a TODO that blocks validation.
 - **Comment action functions liberally.** Action functions encode
   the design's decision logic — the "why" of every threshold, fit,
   adaptation, and save call. Without comments, a QC reviewer has to
@@ -368,6 +522,19 @@ not work) or the pkgdown reference page. Vignettes live at
 https://zhangh12.github.io/TrialSimulator/articles/. Don't disable a
 check to make an error go away.
 
+## Final step — open the main report
+
+After the report and all supplements have been rendered, **open the
+main report HTML in the user's default browser**:
+
+```r
+Rscript -e 'browseURL("runs/<trial_name>/report.html")'
+```
+
+This is the last announced turn of the run, not the user's
+responsibility to remember. Only the main report opens; supplements
+are linked from it. Full guidance in `report.md` §"Output format".
+
 ## Iteration and runtime
 
 Validate iteratively: sanity at `n = 3-5` to catch real errors, a
@@ -389,22 +556,35 @@ a `scripts/` subfolder split by purpose:
 ```
 runs/<trial_name>/
   scripts/
-    main.R          ← building blocks: endpoint, arm, trial,
-                       milestone, listener, controller, run, OC summary
-    actions.R       ← action functions (omit if no non-doNothing actions)
-    generators.R    ← custom generator functions (omit if none)
-    helpers.R       ← helpers used by generators or actions (omit if none)
-    boundaries.R    ← external boundary computation via rpact /
-                       gsDesign (omit if not used). Run ONCE before
-                       main.R; the literal results are hardcoded in
-                       main.R or actions.R. Keeping it as its own
-                       file preserves a reproducible record of where
-                       the literals came from.
-  output.rds        ← saved by main.R
-  report.md         ← the report
-  report.html       ← rendered via markdown::mark_html
-  milestone_times.png ← embedded in the report
+    main.R               ← building blocks: endpoint, arm, trial,
+                            milestone, listener, controller, run, OC summary
+    actions.R            ← action functions (omit if no non-doNothing actions)
+    generators.R         ← custom generator functions (omit if none)
+    helpers.R            ← helpers used by generators or actions (omit if none)
+    boundaries.R         ← external boundary computation via rpact /
+                            gsDesign (omit if not used). Run ONCE before
+                            main.R; the literal results are hardcoded in
+                            main.R or actions.R.
+    derivations/         ← one R script per non-trivial pre-simulation
+      <topic>.R             derivation (correlation fitting, NORTA
+                            feasibility, landmark-to-piecewise, gate-
+                            threshold calibration, etc.). Run ONCE
+                            before main.R; literals hardcoded forward.
+                            See report.md "Pre-simulation derivations
+                            and supplements".
+  supplements/           ← rendered supplement docs (one per
+    <topic>.md              derivations/<topic>.R). Each cross-
+    <topic>.html            referenced from §2 of report.md.
+  output.rds             ← raw controller$get_output(), saved by main.R
+  oc_summary.rds         ← post-processed OC list for the report, saved by main.R
+  report.md              ← the main report
+  report.html            ← rendered via markdown::mark_html
+  milestone_times.png    ← embedded in the report ONLY when the milestone-time
+                            precondition holds AND the decision tree in
+                            report.md §7 selects "include". Omitted otherwise.
 ```
+
+`scripts/derivations/` and `supplements/` are present only when the design has non-trivial pre-simulation derivations; omit when every derivation is trivial enough to stay inline in §2 of the main report.
 
 `main.R` sources whichever sibling files exist:
 

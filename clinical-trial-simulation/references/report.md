@@ -35,6 +35,97 @@ failed its QC purpose.
 This sometimes means duplicating a code block across reports.
 Duplication is fine; broken cross-references at audit time are not.
 
+**Carve-out for supplements (provenance).** The main report is
+self-contained for the **design specification, the simulation code,
+and the operating characteristics**. The *provenance* of derived
+parameters — how each non-trivial literal was obtained from the
+user's brief — may live in a supplement under `supplements/`. The
+main report shows the final literal and a clickable cross-reference
+to the supplement. Each supplement is itself self-contained for its
+own derivation. See "Derivations and supplements"
+below.
+
+## Derivations and supplements
+
+Many simulation parameters are derived from the user's brief —
+boundary literals, distribution calibrations to match target
+medians or landmark survival, correlation parameter fitting, NORTA
+feasibility checks, gate thresholds matched to a desired pass
+probability, information-fraction calibrations, and any other
+script-produced literal cited in the report. The rule applies
+regardless of when the derivation runs (before, during, or after
+the main simulation): any script producing a number that ends up
+in the report goes through the supplement contract below.
+
+| Complexity | Where it lives |
+|---|---|
+| **Trivial** — one-line algebra (median → rate, percentage → exponential rate, Bonferroni split, `log(2)/m`, HR × control median → treatment median). | Inline in §2 Source / Notes. Show the formula in the cell. |
+| **Non-trivial** — solver call, calibration loop, NORTA feasibility check, multi-line math, or any derivation whose literal a reviewer would want to recompute. | A supplement at `supplements/<topic>.md`, with its derivation script at `scripts/derivations/<topic>.R`. §2 cell shows the final literal plus a clickable link to the supplement. |
+
+**Boundary derivation (§2.5) is the canonical inline exception.** If
+`rpact` or `gsDesign` covers the GSD boundary computation directly
+(standard α-spending, single endpoint per look, deterministic
+information fractions), keep §2.5 inline as today. If the boundary
+derivation requires non-standard work — for example, IA event-
+triggered on PFS and FA event-triggered on OS with information
+fractions that need custom reasoning beyond what the package
+functions handle — move it to `supplements/boundaries.md` and
+leave a one-paragraph summary plus link in §2.5.
+
+**Every supplement contains, in this order:**
+
+1. What is being derived, and where the literals are consumed.
+2. The derivation script verbatim from `scripts/derivations/<topic>.R`.
+3. The verbatim R console output of that script.
+4. A realized-feature verification (target-vs-realized table from a small Monte Carlo) when the derivation aims to match a clinical feature; skip for purely algebraic derivations.
+5. The forward literal(s), listed for spot-checking against `main.R`.
+
+Literals stay **hardcoded** in `main.R` and `actions.R` for
+readability — an avg-biostatistician reviewer should see
+`D_total <- 269`, not `readRDS(...)$d_total`. The supplement is the
+audit artifact: its rendered output shows the same literals, and
+the reviewer compares the two. This is the existing `boundaries.R`
++ §2.5 pattern, generalized to all non-trivial derivations.
+
+**Cross-reference from §2.** The Source / Notes cell reads
+`derived — see [<topic>](supplements/<topic>.html)`. Use the `.html`
+link so a click renders the supplement. The `.md` source is what
+gets edited.
+
+**Toolchain.** Supplements are `.md` files rendered via
+`markdown::mark_html`, identical to the main report. No additional
+dependencies.
+
+## Tone and voice
+
+The report is reviewed by a biostatistician for QC and audit. Write
+in **formal, third-person prose**:
+
+- No second person (no "you", no "we"). State what the design does
+  or what the simulation observed, not what the reader should think.
+- No colloquial connectors ("note that", "of course", "obviously",
+  "for what it's worth", "as expected"). State results directly.
+- No editorializing in the narrative. Interpretation belongs in
+  §7's "Interpretation" subsection or §8 "Limitations" — clearly
+  separated from the parameter and result statements.
+- Numbers are reported with explicit units and Monte Carlo standard
+  error (MCSE) where applicable. Avoid hedging modifiers like
+  "approximately" inside numeric tables; state the number, then
+  state precision separately (MCSE, IQR, range).
+- Decisions and assumptions made by the agent are flagged
+  explicitly with the controlled-vocabulary tags in §2 (`inferred`,
+  `derived`, etc.). Do not bury them in narrative.
+- Code blocks are verbatim from the script — no paraphrase. Prose
+  around code is descriptive, not explanatory commentary
+  ("`fitLogrank(...)` is called to test the OS endpoint at look 2"
+  — not "we run a log-rank test here because…").
+- Avoid "the user", "the team", "we", "I". When attribution is
+  necessary, say "the protocol specifies", "the SAP requires", or
+  cite the relevant tag from §2's Source/Notes column.
+
+The skill files themselves are written informally for the agent's
+benefit; that informality must not propagate to the report output.
+
 ## Structure: build-order spine
 
 Mirror the build order in the report. The agent assembled the
@@ -44,19 +135,22 @@ same sequence. Each section pairs (a) the relevant code snippet,
 parameters used, (c) caveats inline if any.
 
 ```
-0. Cost and token usage           — top of report; session-total tokens + cost
-0.5 Run artifacts                 — file tree + reproduction recipe
-1. Why this design                — opening rationale (thought trail)
-2. Confirmed parameters           — single source of truth (table)
-2.5 Boundary computation          — only if external tools (rpact /
-                                    gsDesign / multcomp / ...) were used
-3. Arms (with endpoints)          — per arm: endpoint(...) calls +
-                                    arm() + add_endpoints(), bundled
-4. Trial setup                    — n, duration, accrual, dropout, stratification
-5. Milestones                     — per milestone (trigger + action summary)
-6. Action functions               — per action (full body verbatim)
-7. Operating characteristics      — mapped back to research questions
-8. Caveats and limitations        — placeholders, stubs, helper-dependencies
+   Table of Contents                  — clickable links to every section below
+0. Resource Utilization              — session tokens, cost, software versions
+0.5 Output Files and Reproduction    — file tree + reproduction recipe
+1. Design Rationale                  — context, alternatives considered, choices
+2. Design Parameters                 — single source of truth (table)
+2.5 Decision Boundary Derivation     — only if external tools (rpact /
+                                       gsDesign / multcomp / ...) were used
+3. Treatment Arms and Endpoints      — per arm: endpoint(...) calls +
+                                       arm() + add_endpoints(), bundled
+4. Trial Configuration               — n, duration, accrual, dropout, stratification
+5. Milestones                        — per milestone (trigger + what fires)
+6. Milestone Actions                 — per action (full body verbatim);
+                                       analysis, adaptation, and saves
+7. Operating Characteristics         — results mapped to research questions
+8. Limitations and Assumptions       — placeholders, stubs, helper-dependencies,
+                                       known biases (e.g., conditional estimands)
 ```
 
 The build-order sections that have a clear *design* meaning (3-7)
@@ -64,6 +158,25 @@ each pair a code block with explanation. **The listener and the
 `controller(...) / controller$run()` calls are plumbing — omit them
 from the report.** They are identical across designs and add noise to
 the audit trail.
+
+### Table of Contents (required)
+
+Every report begins with a clickable ToC after the H1 title and
+before §0. Include every section that exists in this report and
+nest §7 subsections when present. Use a bold `**Table of Contents**`
+label (not an H2) so the ToC does not list itself.
+
+### Cross-references between sections (clickable)
+
+When one section refers to another, use a markdown anchor link —
+not bare prose. `markdown::mark_html` generates anchors with a
+fixed prefix: `chp:<slug>` for the H1 and `sec:<slug>` for every
+H2 / H3. The slug is the heading text lowercased, with `§` dropped
+and every period + space replaced by `-`. Example:
+`## §0.5 Output Files and Reproduction` → `sec:0-5-output-files-and-reproduction`.
+Apply the same format in the ToC, in cross-references inside the
+main report, and in supplement-to-main back-references
+(`../report.html#sec:<slug>`).
 
 ### Code style in the report
 
@@ -77,32 +190,25 @@ rules:
   variable names, same arguments, same line breaks. The report is
   the script narrated, not a paraphrase.
 
-### 0. Cost and token usage (at the very top of the report)
+### 0. Resource Utilization (at the very top of the report)
 
-A small table reporting the total token usage and cost for the
-entire session — from the moment `/simulate` was invoked to the
-moment the report is generated. The user wants to see this without
-having to run any extra command.
+A small table reporting total token usage and cost for the entire
+session — from `/simulate` invocation to report generation. The
+user should not have to run an extra command.
 
-The agent retrieves these via whatever telemetry is available in the
-running environment. Likely paths in Claude Code:
+Retrieve session usage via whatever telemetry the agent has access
+to (e.g., `/cost` output if capturable, session JSONL log, etc.).
+**If a value cannot be obtained automatically, the report shows a
+placeholder AND the agent's last announced turn before opening the
+HTML explicitly requests the value from the user**, e.g.
+*"Couldn't retrieve token / cost / session-duration from telemetry
+— please paste `/cost` output and I'll fill in §0."* A bare
+placeholder with no follow-up question is a violation.
 
-- **`/cost` slash command output** — if the agent can capture it
-  (read the conversation log, parse a recent `/cost` invocation).
-- **Session JSONL log** at `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl`
-  — each turn typically records `usage` with `input_tokens`,
-  `output_tokens`, `cache_creation_input_tokens`,
-  `cache_read_input_tokens`. Sum across turns; multiply by the
-  model's per-token rate.
-- **Telemetry directory** at `~/.claude/telemetry/` if usage events
-  are emitted there.
-
-Use the recorded model name to look up the rate. If multiple models
-were used in the session (rare), sum their costs.
-
-If automated retrieval genuinely isn't possible, leave the placeholder
-table and one line asking the user to run `/cost` and paste the
-numbers — but make a real effort first.
+**Skill version is never a placeholder.** It is always a literal,
+looked up once from `SKILL.md`'s YAML frontmatter (`metadata.version`)
+before the report is written. The skill file is in the agent's
+context — there is no excuse for placeholder here.
 
 Recommended format:
 
@@ -115,18 +221,19 @@ Recommended format:
 | Total cost (USD) | $... |
 | Model | claude-opus-4-7 (or actual) |
 | Session duration | hh:mm |
-| TrialSimulator version | required; capture via `packageVersion("TrialSimulator")` |
-| R version | e.g., `4.5.2` |
+| TrialSimulator version | required |
+| R version | required |
+| Skill version | required |
 
-### 0.5 Run artifacts
+§0 shows the version *values* as literal strings. The agent looks them up once before writing the report — no R chunks in the report itself. See SKILL.md §"Package source".
 
-A `tree`-style listing of every file produced by this run, each
-annotated with its size and a one-line purpose, followed by a 2–3
-line shell recipe to reproduce the outputs from the scripts. Keeps
-the reviewer oriented on *where to look* before diving into the
-design.
+### 0.5 Output Files and Reproduction
 
-Two parts:
+This section has two visible sub-parts in the rendered report — a
+**File tree** and a **Reproduction** block. Both must be present;
+label them with bold inline headings as shown in the worked example
+below so the reviewer immediately sees which artifact lists what
+exists and which one tells them how to rebuild it.
 
 **File tree.** Each entry is `name` + `size` + brief description.
 Sizes are useful as a quick sanity check (a 0-byte `output.rds`
@@ -136,14 +243,18 @@ exactly. Files that don't apply to a given design are omitted, not
 shown empty (no `actions.R` if no non-doNothing actions; no
 `boundaries.R` if no external boundary tool; etc.).
 
-**Reproduction recipe.** A short block of `Rscript` calls answering
-"if I delete the .rds files, can I recover them?" Order matters:
-boundaries first (if used) since they emit the literals that
-`main.R` hardcodes; then `main.R` to regenerate the simulation
+**Reproduction.** A short block of `Rscript` calls answering "if I
+delete the .rds files, can I recover them?" The bold `**Reproduction:**`
+label sits immediately above the shell block (not at the top of the
+section) so the reviewer sees the label and the commands together.
+Order matters: boundaries first (if used) since they emit the literals
+that `main.R` hardcodes; then `main.R` to regenerate the simulation
 output; then the HTML re-render. Adapt the recipe to the files that
 exist for this run.
 
 **Worked example:**
+
+**File tree:**
 
 ````
 runs/<trial_name>/
@@ -158,24 +269,46 @@ runs/<trial_name>/
 └── report.html         31K    rendered via markdown::mark_html
 ````
 
+Convention for the two `.rds` files:
+
+- **`output.rds`** is the raw per-replicate matrix returned by
+  `controller$get_output()`. One row per replicate, all auto-saved
+  milestone columns and all `trial$save()` columns present. Large,
+  reproduction artifact, not consumed directly by the report.
+- **`oc_summary.rds`** is the post-processed list of operating
+  characteristics that the report reads. Whatever summary the report
+  cites (power, P(stop) per stage, MCSE, binding-aware expected
+  duration, …) is computed in `main.R` *after* the simulation and
+  saved here. The report never recomputes from `output.rds` — that
+  would couple report rendering to the raw schema and defeat the
+  audit trail. Environment / file metadata (R, TrialSimulator, skill
+  versions) is read at render time by the report script per SKILL.md
+  §"Package source", not persisted here.
+
+**Reproduction:**
+
 ```sh
 Rscript scripts/boundaries.R          # once, to confirm boundary literals
 Rscript scripts/main.R                # regenerates output.rds, oc_summary.rds
 Rscript -e 'markdown::mark_html("report.md", output = "report.html")'
 ```
 
-### 1. Why this design
+### 1. Design Rationale
 
-A short paragraph (3-6 sentences) capturing the reasoning that led to
-this design.
+A short paragraph (3–6 sentences) describing the reasoning that led
+to this design.
 
-- **Mode A (exploration):** include the alternatives that were
-  considered and briefly why each was set aside. This is a thought
-  trail — visible reasoning is more auditable than polished claims.
-- **Mode B (implementation):** restate the user's brief in the
-  agent's words so the user can confirm the interpretation.
+- **Exploration mode:** state the alternatives that were considered
+  and the basis for each being set aside (e.g., "alpha allocation
+  alternatives 0.0125/0.0125, 0.005/0.020, and 0.015/0.010 were
+  evaluated; 0.015/0.010 was selected to weight PFS, the
+  earlier-maturing endpoint"). The visible reasoning trail is part
+  of the audit record.
+- **Implementation mode:** restate the protocol brief in the
+  report's own words so the protocol writer can verify the
+  interpretation against the source document.
 
-### 2. Confirmed parameters
+### 2. Design Parameters
 
 A single table that is the source of truth for every value used in
 the simulation. Subsequent sections reference this table rather than
@@ -189,14 +322,14 @@ restating numbers.
 | **Value** | The exact value used in the simulation (number, expression, distribution + parameters, data.frame literal, helper-derived literal). |
 | **Source / Notes** | Where the value came from. Pick the most specific applicable category from the controlled vocabulary below. |
 
-**Source / Notes — controlled vocabulary** (use one; combine with a short explanation when needed):
+**Source / Notes — controlled vocabulary** (use one; combine with a short justification when needed):
 
-- **`user`** — copied verbatim from the user's spec.
-- **`user (translated)`** — user-provided in clinical terms, mechanically translated to a TS-compatible form. Show the translation, e.g. *"15% dropout by mo 50 → `rate = -log(0.85)/50`"*.
-- **`inferred`** — the user did not specify; the agent picked a sensible default. State the default and why in one phrase, e.g. *"inferred — ORR readout typical of solid-tumor trials"*. **Inferred values must be confirmed (or at least surfaced) with the user before expensive runs.**
-- **`derived`** — computed from other parameters in this table or from a helper. Cite the source, e.g. *"derived: `solveThreeStateModel(median_pfs=7, median_os=15, corr=0.68) → h01 = 0.0750`"*, or *"derived from `boundaries.R` (rpact)"*.
-- **`package convention`** — a default the package or skill prescribes (e.g., `seed = NULL`, `silent = TRUE`, `plot_event = FALSE`). Brief; no rationale needed.
-- **`stub`** / **`DUMMY`** — a placeholder decision rule, combination test, or boundary that needs replacement before the design is finalized. **Highlight prominently** (bold, prefix `STUB:`, or both) so reviewers cannot miss it.
+- **`protocol`** — copied verbatim from the protocol or user-supplied specification.
+- **`protocol (derived)`** — protocol-specified in clinical terms, mechanically converted to a TS-compatible form. The conversion must be shown, e.g. *"15% dropout by mo 50 → `rate = -log(0.85)/50`"*.
+- **`assumed`** — not specified by the protocol; a default value was selected. The default and its basis must be stated in one phrase, e.g. *"assumed — 6-month ORR readout typical of solid-tumor trials"*. **Assumed values require explicit confirmation before the production simulation is executed.**
+- **`derived`** — computed from other parameters in this table or from a helper function. The computation must be cited, e.g. *"derived: `solveThreeStateModel(median_pfs=7, median_os=15, corr=0.68) → h01 = 0.0750`"*, or *"derived from `boundaries.R` (rpact)"*.
+- **`software default`** — a default prescribed by the package or skill convention (e.g., `seed = NULL`, `silent = TRUE`, `plot_event = FALSE`). No rationale required.
+- **`PLACEHOLDER`** — a decision rule, combination test, or boundary marked for replacement before design finalization. Must be prominently flagged in the table (bold + `PLACEHOLDER:` prefix) and listed again in §8.
 
 Always include rows for: endpoint distribution parameters per arm, readout times for non-TTE endpoints, correlation structure (and the generator implementing it), sample size, duration, accrual schedule, dropout, stratification factors, milestone trigger thresholds, and any helper-derived literals.
 
@@ -204,18 +337,20 @@ Always include rows for: endpoint distribution parameters per arm, readout times
 
 | Parameter | Value | Source / Notes |
 |---|---|---|
-| N (1:1) | 500 | user |
-| Accrual | uniform 20/mo (`StaggeredRecruiter`, `accrual_rate = data.frame(end_time=Inf, piecewise_rate=20)`) | user |
-| Dropout | exponential, `rate = -log(0.85)/50 = 0.003250` | user (translated): "15% by mo 50" |
-| ORR readout | 6 mo | inferred — typical solid-tumor first response assessment; confirm before production |
-| PFS — control | `rexp(rate = log(2)/20)` | user |
-| PFS — treatment, 6-mo delay scenario | `PiecewiseConstantExponentialRNG(risk = data.frame(end_time=c(6,1000), piecewise_risk=c(log(2)/20, 0.55*log(2)/20)))` | derived from user's NPH spec; `tail_end = 1000` per package gotcha |
+| N (1:1) | 500 | protocol |
+| Accrual | uniform 20/mo (`StaggeredRecruiter`, `accrual_rate = data.frame(end_time=Inf, piecewise_rate=20)`) | protocol |
+| Dropout | exponential, `rate = -log(0.85)/50 = 0.003250` | protocol (derived): "15% by mo 50" |
+| ORR readout | 6 mo | assumed — first response assessment typical for solid-tumor trials; confirm before production |
+| PFS — control | `rexp(rate = log(2)/20)` | protocol |
+| PFS — treatment, 6-mo delay scenario | `PiecewiseConstantExponentialRNG(risk = data.frame(end_time=c(6,1000), piecewise_risk=c(log(2)/20, 0.55*log(2)/20)))` | derived from protocol NPH specification; `tail_end = 1000` per package convention |
 | GSD efficacy bounds (z) | (3.0204, 2.3762, 2.0303) at IF (0.49, 0.75, 1.00) | derived from `boundaries.R` (rpact, asOF, alpha=0.024) |
 | D_total | 269 events | derived from `boundaries.R` (rpact, 90% power assumption) |
-| Combination test alpha allocation | **STUB:** equal split | stub — placeholder; replace with the protocol's pre-specified allocation |
-| Seed | `NULL` (auto per replicate) | package convention |
+| Combination test alpha allocation | equal split | PLACEHOLDER — replace with the protocol's pre-specified allocation |
+| Seed | `NULL` (auto per replicate) | software default |
 
-### 2.5 Boundary computation (only if external tools were used)
+The `PLACEHOLDER` tag in the Source / Notes column is the single signal — do not also wrap the Value column with a `**PLACEHOLDER:**` prefix. One tag, one column.
+
+### 2.5 Decision Boundary Derivation (only if external tools were used)
 
 If decision boundaries were computed via an external package
 (`rpact`, `gsDesign`, `multcomp`, `gMCP`, etc.), include both the
@@ -253,7 +388,17 @@ verify the literals match.
 
 Skip this section entirely when no external boundary tool was used.
 
-### 3. Arms (with endpoints)
+**Inline vs supplement.** Keep §2.5 inline when `rpact` or
+`gsDesign` covers the boundary derivation directly. When the
+derivation needs custom work the packages do not handle (e.g., IA
+event-triggered on PFS, FA event-triggered on OS, with information
+fractions that require additional reasoning beyond what
+`getDesignGroupSequential` accepts), move the verbatim call,
+output, and any custom math to `supplements/boundaries.md` per the
+"Derivations and supplements" rules, and leave a
+one-paragraph summary plus link in §2.5.
+
+### 3. Treatment Arms and Endpoints
 
 Bundle each arm's full assembly into one block: the `endpoint(...)`
 call(s) for that arm, the `arm(...)` call, and the `$add_endpoints(...)`
@@ -279,7 +424,7 @@ blocks per arm should still be shown in full** so each arm is
 self-contained for review. A small per-arm parameter table is also
 fine when many arms differ only in numeric values.
 
-### 4. Trial setup
+### 4. Trial Configuration
 
 Show the `trial(...)` call. Explain:
 - Sample size and duration (and whether `set_duration`/`resize` will
@@ -296,10 +441,21 @@ Show the `trial(...)` call. Explain:
 Per milestone:
 - Show the `milestone(...)` call with its `when` condition.
 - One paragraph: what triggers it (in clinical terms), what happens
-  at the trigger, when in the trial it is expected to fire (cite
+  at the trigger (analysis, adaptation, data lock, saves — whatever
+  applies), and when in the trial it is expected to fire (cite
   expected milestone time from the calibration run if available).
 
-### 6. Action functions
+The full bodies of the action functions go in §6, not here. Keep §5
+focused on triggers and high-level intent so a reviewer can scan the
+trial timeline without reading code.
+
+### 6. Milestone Actions
+
+Action functions are the work performed at each milestone — they may
+analyze locked data, adapt the trial (`$resize`, `$update_generator`,
+`$remove_arms`, `$add_arms`, `$set_duration`), save flags and
+diagnostics, or do nothing (`doNothing`). This section documents all
+of it.
 
 **Show the full body of each action function** as a code block —
 verbatim from the script, one statement per line. Prose summaries
@@ -313,17 +469,18 @@ After (not before) the code block, add a short narrative covering:
 - **Data lock** — what `get_locked_data` returns at this point;
   which arms / endpoints are populated.
 - **Analysis** — which test, which wrapper, why this choice. **If
-  a stub for a combination/group-sequential test, flag it
-  prominently.**
+  a placeholder for a combination/group-sequential test, flag it
+  prominently using the `PLACEHOLDER` tag (same vocabulary as §2).**
 - **Adaptation** — which `trial$*()` methods are called, with the
-  rule. **If a dummy rule, flag it: "DUMMY: replace with actual
-  rule."**
+  rule. **If a placeholder rule, flag it as `# PLACEHOLDER: replace
+  with actual rule` in the code and as `PLACEHOLDER` in the §2 row
+  that captures the rule.**
 - **What gets saved** — each `trial$save()` mapped to which
   operating characteristic it supports.
 
 The narrative annotates the code block; it does not replace it.
 
-### 7. Operating characteristics
+### 7. Operating Characteristics
 
 For each operating characteristic the user asked about:
 - Restate the research question in the user's words.
@@ -362,7 +519,7 @@ If applicable, include Monte Carlo standard error estimates next to
 each OC so the reader can judge precision (e.g., for a power estimate
 `p` from `n` replicates, MCSE ≈ √(p(1−p)/n)).
 
-### 8. Caveats and limitations
+### 8. Limitations and Assumptions
 
 A short list of things the user should know:
 - Dummy decision rules that need replacement before the design is
@@ -380,11 +537,17 @@ auditability.
 ## Output format
 
 Default: write the report as Markdown, render it to HTML alongside,
-and open the HTML in the user's default browser when ready.
+and **open the main report HTML in the user's default browser as the
+final step of every run** — this is not optional.
 
 ```r
 Rscript -e 'markdown::mark_html("report.md", output = "report.html"); browseURL("report.html")'
 ```
+
+The agent runs this command after the report has been rendered and
+all artifacts are in place; the user should not have to manually
+open the HTML. Supplements are linked from the main report — the
+user clicks through if interested. Do not auto-open supplements.
 
 `markdown::mark_html()` is what RStudio's Markdown Preview button
 uses, so the rendered HTML matches the style the user is already
