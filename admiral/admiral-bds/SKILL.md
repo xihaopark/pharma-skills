@@ -391,7 +391,7 @@ if (length(missing_vars) > 0) {
   `DTYPE != NA` records from uniqueness checks (synthetic rows are intentional
   duplicates by USUBJID + PARAMCD + AVISITN)
 - Using `derive_vars_merged()` instead of `derive_vars_merged_lookup()` for
-  PARAMCD/PARAM/PARAMN assignment — `derive_vars_merged()` is reserved for ADSL
+  PARAMCD/PARAM/PARAMN assignment — `derive_vars_merged()` is primarily used for ADSL
   backbone merges; parameter code mappings must use `derive_vars_merged_lookup()`
   so that unmatched records are retained and filterable via `filter(!is.na(PARAMCD))`
 - Using `"N"` for ABLFL or ANL01FL — flag convention is `"Y"` or `NA` only
