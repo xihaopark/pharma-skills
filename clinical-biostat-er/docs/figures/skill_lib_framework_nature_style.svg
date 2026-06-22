@@ -1,0 +1,208 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1160" viewBox="0 0 1800 1160" role="img" aria-labelledby="title desc">
+  <title id="title">Clinical Biostat ER skill library architecture and evaluation framework</title>
+  <desc id="desc">A Nature-style multi-panel systems figure showing the clinical-biostat-er skill bundle, ER workflow, reproducibility and agent-behavior evaluation loop, and current semantic frontier.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8f7f3; }
+      .ink { fill: #1f2933; }
+      .muted { fill: #5f6b75; }
+      .faint { fill: #8a949e; }
+      .line { stroke: #2f3a43; stroke-width: 1.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .thin { stroke: #8a949e; stroke-width: 1.1; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .dash { stroke: #8a949e; stroke-width: 1.2; fill: none; stroke-dasharray: 5 7; stroke-linecap: round; }
+      .panel { fill: #ffffff; stroke: #d6d2c8; stroke-width: 1.3; }
+      .soft { fill: #fbfaf7; stroke: #d6d2c8; stroke-width: 1.1; }
+      .blue { fill: #dbe9f6; stroke: #4477aa; }
+      .green { fill: #dcefe4; stroke: #22865a; }
+      .amber { fill: #f5e7c8; stroke: #b88718; }
+      .red { fill: #f4d7d4; stroke: #b64b42; }
+      .slate { fill: #e6ebef; stroke: #60717f; }
+      .purple { fill: #e8e1f0; stroke: #7a5a96; }
+      .core { fill: #e9f1f7; stroke: #4477aa; stroke-width: 1.5; }
+      .support { fill: #f0eee8; stroke: #8c8377; stroke-width: 1.2; }
+      .eval { fill: #edf5ee; stroke: #22865a; stroke-width: 1.4; }
+      .risk { fill: #f9e5df; stroke: #b64b42; stroke-width: 1.4; }
+      .txt { font-family: Arial, Helvetica, sans-serif; fill: #1f2933; }
+      .title { font-size: 36px; font-weight: 700; letter-spacing: 0; }
+      .subtitle { font-size: 17px; fill: #5f6b75; }
+      .panelLetter { font-size: 28px; font-weight: 700; }
+      .panelTitle { font-size: 20px; font-weight: 700; }
+      .label { font-size: 15px; font-weight: 700; }
+      .small { font-size: 12.5px; fill: #5f6b75; }
+      .micro { font-size: 10.8px; fill: #5f6b75; }
+      .mono { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 11px; fill: #4b5660; }
+      .num { font-size: 12px; font-weight: 700; fill: #ffffff; }
+      .chipText { font-size: 12px; font-weight: 700; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2f3a43"/>
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4477aa"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#22865a"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1800" height="1160"/>
+  <text class="txt title" x="70" y="72">Clinical Biostat ER skill library</text>
+  <text class="txt subtitle" x="70" y="102">Instruction surfaces, runtime modules, ClaudeCode evals, and reference-result reproducibility as one governed system</text>
+  <text class="txt micro" x="1518" y="72">Current frontier</text>
+  <rect class="amber" x="1518" y="84" width="214" height="34" rx="17"/>
+  <text class="txt chipText" x="1536" y="106">Case41/42 prepared</text>
+
+  <!-- Panel A -->
+  <rect class="panel" x="60" y="150" width="520" height="395" rx="2"/>
+  <text class="txt panelLetter" x="86" y="190">A</text>
+  <text class="txt panelTitle" x="124" y="188">Skill bundle contract</text>
+  <text class="txt small" x="124" y="212">What ClaudeCode is allowed to read, run, and claim</text>
+
+  <rect class="slate" x="92" y="244" width="442" height="52" rx="4"/>
+  <text class="txt label" x="112" y="266">Top-level skill</text>
+  <text class="txt mono" x="112" y="286">SKILL.md + CLAUDE.md + LIFECYCLE.md</text>
+
+  <text class="txt small" x="92" y="325">Six authoritative core skills</text>
+  <g>
+    <rect class="core" x="92" y="342" width="132" height="48" rx="4"/><text class="txt label" x="108" y="363">Core 1</text><text class="txt micro" x="108" y="380">understanding</text>
+    <rect class="core" x="246" y="342" width="132" height="48" rx="4"/><text class="txt label" x="262" y="363">Core 2</text><text class="txt micro" x="262" y="380">PK/PD review</text>
+    <rect class="core" x="400" y="342" width="132" height="48" rx="4"/><text class="txt label" x="416" y="363">Core 3</text><text class="txt micro" x="416" y="380">exposure metrics</text>
+    <rect class="core" x="92" y="404" width="132" height="48" rx="4"/><text class="txt label" x="108" y="425">Core 4</text><text class="txt micro" x="108" y="442">ER exploration</text>
+    <rect class="core" x="246" y="404" width="132" height="48" rx="4"/><text class="txt label" x="262" y="425">Core 5</text><text class="txt micro" x="262" y="442">modeling</text>
+    <rect class="core" x="400" y="404" width="132" height="48" rx="4"/><text class="txt label" x="416" y="425">Core 6</text><text class="txt micro" x="416" y="442">review package</text>
+  </g>
+
+  <rect class="support" x="92" y="480" width="442" height="40" rx="4"/>
+  <text class="txt label" x="112" y="505">Support skills: ADaM spec reader, setup, handoff, templates</text>
+
+  <!-- Panel B -->
+  <rect class="panel" x="620" y="150" width="1120" height="395" rx="2"/>
+  <text class="txt panelLetter" x="646" y="190">B</text>
+  <text class="txt panelTitle" x="684" y="188">Executable ER workflow</text>
+  <text class="txt small" x="684" y="212">Baseline data are read-only; generated artifacts live under eval run roots</text>
+
+  <rect class="soft" x="658" y="252" width="150" height="72" rx="4"/>
+  <text class="txt label" x="681" y="276">AZ inputs</text>
+  <text class="txt micro" x="681" y="295">mock datasets</text>
+  <text class="txt micro" x="681" y="310">reference Results</text>
+
+  <g>
+    <rect class="core" x="858" y="244" width="118" height="88" rx="4"/><text class="txt label" x="883" y="270">Core 1</text><text class="txt micro" x="878" y="291">inventory</text><text class="txt micro" x="872" y="307">readiness</text>
+    <rect class="core" x="1010" y="244" width="118" height="88" rx="4"/><text class="txt label" x="1035" y="270">Core 2</text><text class="txt micro" x="1030" y="291">individual</text><text class="txt micro" x="1035" y="307">review</text>
+    <rect class="core" x="1162" y="244" width="118" height="88" rx="4"/><text class="txt label" x="1187" y="270">Core 3</text><text class="txt micro" x="1182" y="291">exposure</text><text class="txt micro" x="1187" y="307">metrics</text>
+    <rect class="core" x="1314" y="244" width="118" height="88" rx="4"/><text class="txt label" x="1339" y="270">Core 4</text><text class="txt micro" x="1332" y="291">questions</text><text class="txt micro" x="1335" y="307">readiness</text>
+    <rect class="core" x="1466" y="244" width="118" height="88" rx="4"/><text class="txt label" x="1491" y="270">Core 5</text><text class="txt micro" x="1488" y="291">logistic</text><text class="txt micro" x="1487" y="307">KM / Cox</text>
+    <rect class="core" x="1618" y="244" width="88" height="88" rx="4"/><text class="txt label" x="1635" y="270">Core 6</text><text class="txt micro" x="1635" y="291">review</text><text class="txt micro" x="1641" y="307">pack</text>
+  </g>
+  <path class="line" marker-end="url(#arrow)" d="M808 288 H850"/>
+  <path class="line" marker-end="url(#arrow)" d="M976 288 H1002"/>
+  <path class="line" marker-end="url(#arrow)" d="M1128 288 H1154"/>
+  <path class="line" marker-end="url(#arrow)" d="M1280 288 H1306"/>
+  <path class="line" marker-end="url(#arrow)" d="M1432 288 H1458"/>
+  <path class="line" marker-end="url(#arrow)" d="M1584 288 H1610"/>
+
+  <rect class="support" x="858" y="376" width="390" height="60" rx="4"/>
+  <text class="txt label" x="880" y="399">Runtime implementation</text>
+  <text class="txt mono" x="880" y="419">scripts/shared/* + skills/*/scripts/modules/*</text>
+  <rect class="support" x="1282" y="376" width="424" height="60" rx="4"/>
+  <text class="txt label" x="1304" y="399">Run-local artifacts</text>
+  <text class="txt mono" x="1304" y="419">intermediate/, outputs/, analysis/, pipeline_status.csv</text>
+  <path class="dash" d="M1050 376 C1050 348 1050 348 1050 332"/>
+  <path class="dash" d="M1494 376 C1494 348 1494 348 1494 332"/>
+
+  <rect class="green" x="658" y="456" width="238" height="48" rx="24"/>
+  <text class="txt chipText" x="684" y="485">Core 1-5 can execute scaffold</text>
+  <rect class="amber" x="922" y="456" width="254" height="48" rx="24"/>
+  <text class="txt chipText" x="948" y="485">Core 6 review, not decision-ready</text>
+  <rect class="red" x="1202" y="456" width="300" height="48" rx="24"/>
+  <text class="txt chipText" x="1227" y="485">ILD TTE semantics unresolved</text>
+
+  <!-- Panel C -->
+  <rect class="panel" x="60" y="590" width="1040" height="455" rx="2"/>
+  <text class="txt panelLetter" x="86" y="630">C</text>
+  <text class="txt panelTitle" x="124" y="628">Evaluation and semantic-parity loop</text>
+  <text class="txt small" x="124" y="652">Reproduction is treated as evidence, not as a success label</text>
+
+  <rect class="soft" x="112" y="710" width="170" height="82" rx="4"/>
+  <text class="txt label" x="134" y="738">Reference Results</text>
+  <text class="txt micro" x="134" y="758">AZ tables + figures</text>
+  <text class="txt micro" x="134" y="774">read-only baseline</text>
+  <rect class="soft" x="112" y="850" width="170" height="82" rx="4"/>
+  <text class="txt label" x="134" y="878">Generated run</text>
+  <text class="txt micro" x="134" y="898">evals/_runs/*</text>
+  <text class="txt micro" x="134" y="914">no baseline writes</text>
+
+  <rect class="eval" x="352" y="722" width="190" height="92" rx="4"/>
+  <text class="txt label" x="379" y="750">Comparison pack</text>
+  <text class="txt micro" x="379" y="770">same-name figures</text>
+  <text class="txt micro" x="379" y="786">table schema / rows / values</text>
+  <rect class="eval" x="612" y="722" width="190" height="92" rx="4"/>
+  <text class="txt label" x="641" y="750">Semantic audit</text>
+  <text class="txt micro" x="641" y="770">rule inventory</text>
+  <text class="txt micro" x="641" y="786">evidence packets</text>
+  <rect class="amber" x="872" y="722" width="170" height="92" rx="4"/>
+  <text class="txt label" x="900" y="750">Decision gate</text>
+  <text class="txt micro" x="900" y="770">ready / blocked</text>
+  <text class="txt micro" x="900" y="786">no invented rules</text>
+
+  <rect class="purple" x="612" y="876" width="190" height="72" rx="4"/>
+  <text class="txt label" x="640" y="904">Runtime patch</text>
+  <text class="txt micro" x="640" y="924">only after approved gate</text>
+  <rect class="green" x="352" y="876" width="190" height="72" rx="4"/>
+  <text class="txt label" x="384" y="904">Validated case</text>
+  <text class="txt micro" x="384" y="924">frontier advances</text>
+
+  <path class="line" marker-end="url(#arrowGreen)" d="M282 750 H344"/>
+  <path class="line" marker-end="url(#arrowGreen)" d="M282 890 C312 890 318 768 344 768"/>
+  <path class="line" marker-end="url(#arrowGreen)" d="M542 768 H604"/>
+  <path class="line" marker-end="url(#arrowGreen)" d="M802 768 H864"/>
+  <path class="line" marker-end="url(#arrowGreen)" d="M957 814 C957 910 878 912 810 912"/>
+  <path class="line" marker-end="url(#arrowGreen)" d="M612 912 H550"/>
+  <path class="line" marker-end="url(#arrowGreen)" d="M447 876 C447 838 447 838 447 822"/>
+
+  <g>
+    <circle cx="145" cy="989" r="13" fill="#22865a"/><text class="txt num" x="141" y="994">1</text>
+    <text class="txt small" x="166" y="994">Case40 validated: sdtab1062 source resolution; KM by-dose aligned</text>
+    <circle cx="612" cy="989" r="13" fill="#b88718"/><text class="txt num" x="608" y="994">2</text>
+    <text class="txt small" x="633" y="994">Case41/42 prepared: R006 ILD TTE audit + gate, not live-passed</text>
+  </g>
+
+  <!-- Panel D -->
+  <rect class="panel" x="1140" y="590" width="600" height="455" rx="2"/>
+  <text class="txt panelLetter" x="1166" y="630">D</text>
+  <text class="txt panelTitle" x="1204" y="628">Test and guard surface</text>
+  <text class="txt small" x="1204" y="652">Tests verify contracts, reproducibility harnesses, and agent behavior</text>
+
+  <rect class="slate" x="1190" y="704" width="116" height="116" rx="58"/>
+  <text class="txt" x="1223" y="756" style="font-family:Arial,Helvetica,sans-serif;font-size:42px;font-weight:700;">36</text>
+  <text class="txt small" x="1214" y="782">R tests</text>
+
+  <rect class="soft" x="1340" y="700" width="340" height="46" rx="4"/>
+  <text class="txt label" x="1362" y="729">Entrypoint + module smoke contracts</text>
+  <rect class="soft" x="1340" y="760" width="340" height="46" rx="4"/>
+  <text class="txt label" x="1362" y="789">Core workflow + Core5/Core6 behavior</text>
+  <rect class="soft" x="1340" y="820" width="340" height="46" rx="4"/>
+  <text class="txt label" x="1362" y="849">Reproduction + comparison packs</text>
+  <rect class="soft" x="1340" y="880" width="340" height="46" rx="4"/>
+  <text class="txt label" x="1362" y="909">ClaudeCode cases, validators, frontier</text>
+
+  <path class="thin" d="M1308 762 H1332"/>
+  <path class="thin" d="M1308 762 C1324 762 1324 783 1332 783"/>
+  <path class="thin" d="M1308 762 C1324 762 1324 843 1332 843"/>
+  <path class="thin" d="M1308 762 C1324 762 1324 903 1332 903"/>
+
+  <rect class="green" x="1190" y="958" width="154" height="42" rx="21"/>
+  <text class="txt chipText" x="1211" y="984">preflight passed</text>
+  <rect class="amber" x="1366" y="958" width="144" height="42" rx="21"/>
+  <text class="txt chipText" x="1389" y="984">quota pending</text>
+  <rect class="red" x="1532" y="958" width="148" height="42" rx="21"/>
+  <text class="txt chipText" x="1556" y="984">not final parity</text>
+
+  <!-- Bottom legend -->
+  <rect class="soft" x="60" y="1080" width="1680" height="46" rx="2"/>
+  <circle cx="94" cy="1103" r="7" fill="#4477aa"/><text class="txt small" x="110" y="1108">skill/workflow module</text>
+  <circle cx="282" cy="1103" r="7" fill="#22865a"/><text class="txt small" x="298" y="1108">validated evidence</text>
+  <circle cx="466" cy="1103" r="7" fill="#b88718"/><text class="txt small" x="482" y="1108">prepared or review-gated</text>
+  <circle cx="694" cy="1103" r="7" fill="#b64b42"/><text class="txt small" x="710" y="1108">unresolved semantic risk</text>
+  <text class="txt micro" x="1180" y="1108">Figure source: clinical-biostat-er repository state, current_frontier.csv, and eval/test manifests.</text>
+</svg>

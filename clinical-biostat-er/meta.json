@@ -1,0 +1,80 @@
+{
+  "skill": "clinical-biostat-er",
+  "version": "0.3.2",
+  "related": {
+    "skill": "clinical-biostat-collaboration",
+    "version": "0.1.0",
+    "relationship": "sibling; coexists; non-superseding",
+    "use_case_diff": "v0.1 = medical reviewer statistical collaboration checklist; v0.3.2 = senior biostatistician for AZ ER with six authoritative ER core workflow skills, ER-native support skills, lifecycle/eval structure, and Codex-Claude handoff support"
+  },
+  "extraction_date": "2026-05-15",
+  "six_core_update_date": "2026-06-17",
+  "handoff_update_date": "2026-05-26",
+  "additive_guidance_update_date": "2026-06-07",
+  "release_readiness_update_date": "2026-06-17",
+  "extraction_branch": "feature/gc506f-graphify-clinical-adapter",
+  "authoritative_core_skills": [
+    "skills/er-understanding-data/SKILL.md",
+    "skills/er-individual-pk-pd-review/SKILL.md",
+    "skills/er-exposure-metrics/SKILL.md",
+    "skills/er-exposure-response-exploration/SKILL.md",
+    "skills/er-statistical-modeling/SKILL.md",
+    "skills/er-reporting-and-review/SKILL.md"
+  ],
+  "core_workflow_contract": {
+    "contract": "references/er-core-workflow-contract.md",
+    "shared_helper": "scripts/er_core_workflow_helpers.R",
+    "canonical_spec": "config/er_workflow_spec.yaml",
+    "canonical_intermediates": "intermediate/<core_step>/",
+    "canonical_rmd": "analysis/er_core_workflow.Rmd",
+    "canonical_manifest": "outputs/manifest.json",
+    "required_dataset_fields": [
+      "modality",
+      "indication_or_disease",
+      "scenario_key"
+    ],
+    "conflict_policy": "If existing bundle skills conflict with the six core skills, align to the six core skill instructions and standards."
+  },
+  "additive_guidance_references": [
+    "references/statistical-method-router.md",
+    "references/clinical-data-qc-router.md",
+    "references/r-helper-package-contract.md"
+  ],
+  "dual_agent_handoff": {
+    "skill": "skills/codex-claude-handoff/SKILL.md",
+    "template": "skills/codex-claude-handoff/references/handoff-template.md",
+    "default_validation_command": "Rscript evals/agent_behavior/run_agent_behavior_regression.R",
+    "codex_role": "Inspect repo data and business rules, invoke relevant ER skills, classify assumptions and review gates, and produce a proposed plan or Claude-ready execution handoff.",
+    "claude_role": "Execute exactly from the handoff, use the same bundle skills when available, preserve validation and sensitive-data boundaries, and stop on expert-owned decisions.",
+    "boundary": "Skills are local instructions and are not automatically shared across Codex and Claude; if Claude cannot discover the bundle, include needed skill names, paths, and concise excerpts in the handoff."
+  },
+  "development_and_validation": {
+    "primary_reproduction_fixture": "mock_dataset_01_small_molecules_onco",
+    "cart_nononcology_fixture": "mock_dataset_02_cart_nononco",
+    "agent_behavior_runner": "evals/agent_behavior/run_agent_behavior_regression.R",
+    "release_readiness": "RELEASE_READINESS.md",
+    "sample_specific_rule_policy": "ADC fixture rules such as CompoundX, sdtab1062, TIME == 504, AUC1, dose mappings, and AESI lists are fixture configuration only, not defaults."
+  },
+  "retained_legacy_source_material": [],
+  "project_repository": {
+    "owner": "xihaopark",
+    "name": "AZ",
+    "url": "https://github.com/xihaopark/AZ",
+    "visibility": "private",
+    "external_upstream": null
+  },
+  "third_party_notices": {
+    "notice_file": null,
+    "legacy_adapted_support_material": []
+  },
+  "extraction_scope": "ER-native assistant_pack core plus ER-native support skills plus six authoritative core ER workflow skills plus Codex-Claude handoff skill",
+  "boundary": "senior biostatistician for AZ ER workbench; does not substitute for clinical judgment, formal SAP approval, or decision-changing CP/statistics review",
+  "sync_policy": "snapshot-only; no automatic sync",
+  "deferred_dependencies": [],
+  "distribution": {
+    "scope": "AZ internal only",
+    "no_public_repo": true,
+    "no_public_pages": true,
+    "license_note": "AZ internal use; no active external upstream lineage in the current skill bundle"
+  }
+}

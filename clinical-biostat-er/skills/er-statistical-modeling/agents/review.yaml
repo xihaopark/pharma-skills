@@ -1,0 +1,55 @@
+# Core 5 adversarial review sub-agent.
+# Invoked by er-statistical-modeling SKILL.md -> "Adversarial review (MANDATORY)".
+# AFTER modeling artifacts are written and BEFORE handoff to Core 6.
+interface:
+  display_name: "ER Core 5 Adversarial Review"
+  short_description: "Challenge model dispatch, fit boundaries, diagnostics, skip logs, and interpretation before Core 6."
+  default_prompt: >
+    Act as an adversarial senior statistician reviewing Core 5 statistical
+    modeling outputs BEFORE they are handed to Core 6. Do not refit models,
+    reinterpret results, or edit the spec. Read every file under `review.reads`,
+    then work through each challenge. Write one advisory row per challenge to
+    `review.output.artifact` with severity `block`, `needs_review`, or `ok`.
+review:
+  reads:
+    - config/er_workflow_spec.yaml
+    - intermediate/04_exposure_response_exploration/model_readiness.csv
+    - intermediate/04_exposure_response_exploration/method_selection_audit.csv
+    - intermediate/05_statistical_modeling/model_run_summary.csv
+    - intermediate/05_statistical_modeling/model_skip_log.csv
+    - intermediate/05_statistical_modeling/method_selection_audit.csv
+    - intermediate/05_statistical_modeling/model_diagnostics_manifest.csv
+    - intermediate/05_statistical_modeling/cox_ph_check.csv
+    - outputs/manifest.json
+  challenges:
+    - id: dispatch_contract
+      prompt: >
+        Did Core 5 fit only rows that Core 4 marked ready_for_modeling? Flag any
+        fitted pair that lacked readiness or violated a Core 4 gate.
+    - id: supported_method_boundary
+      prompt: >
+        Were unsupported/router-only methods audited as extension candidates
+        rather than silently implemented? Flag any method-family overreach.
+    - id: skip_log_completeness
+      prompt: >
+        Are skipped or errored models represented in model_run_summary.csv and
+        model_skip_log.csv with explicit reasons, source rows, and review gates?
+    - id: diagnostics_artifacts
+      prompt: >
+        Do all fitted logistic, Cox, and KM models have non-empty diagnostics
+        artifacts when required, and are Cox PH checks recorded when Cox runs?
+    - id: interpretation_boundary
+      prompt: >
+        Are outputs kept exploratory unless reviewer-promoted? Flag any
+        decision-changing conclusion, dose-selection claim, or confirmatory
+        language.
+    - id: scenario_consistency
+      prompt: >
+        Do modality, indication_or_disease, and scenario_key agree across Core 5
+        artifacts and upstream Core 4 artifacts?
+  output:
+    artifact: intermediate/05_statistical_modeling/core5_review_findings.csv
+    schema: [challenge, finding, severity, cited_artifact, cited_row, review_gate, recommended_action]
+    note: >
+      Advisory record. Resolve every `block` row before invoking Core 6; Core 6
+      also inventories unresolved `needs_review` and skipped/error statuses.

@@ -1,0 +1,53 @@
+# Core 6 adversarial review sub-agent.
+# Invoked by er-reporting-and-review SKILL.md -> "Adversarial review (MANDATORY)".
+# AFTER the review package is assembled and BEFORE claiming readiness for CP/statistics review.
+interface:
+  display_name: "ER Core 6 Adversarial Review"
+  short_description: "Challenge review package completeness, gate routing, and no-overclaim boundaries."
+  default_prompt: >
+    Act as an adversarial senior study lead reviewing Core 6 reporting/review
+    outputs BEFORE the package is handed to CP/statistics reviewers. Do not close
+    review gates, edit source artifacts, or write final regulatory conclusions.
+    Read every file under `review.reads`, then work through each challenge. Write
+    one advisory row per challenge to `review.output.artifact` with severity
+    `block`, `needs_review`, or `ok`.
+review:
+  reads:
+    - pipeline_status.csv
+    - intermediate/06_reporting_review/artifact_inventory.csv
+    - intermediate/06_reporting_review/artifact_summary_by_core.csv
+    - intermediate/06_reporting_review/review_gate_summary.csv
+    - intermediate/06_reporting_review/review_gate_action_items.csv
+    - intermediate/06_reporting_review/deliverable_readiness.csv
+    - intermediate/06_reporting_review/reporting_handoff_checklist.csv
+    - intermediate/06_reporting_review/review_pack_manifest.csv
+    - outputs/06_reporting_review/review_pack_README.md
+    - outputs/06_reporting_review/review_summary.md
+  challenges:
+    - id: artifact_completeness
+      prompt: >
+        Does the inventory include artifacts from every core that ran or
+        scaffolded, including Core 6's own review outputs? Flag missing expected
+        tables, figures, or manifests.
+    - id: gate_routing
+      prompt: >
+        Are open gates, skipped models, errors, and blocked statuses routed to
+        the correct decision_lane and priority without being marked complete?
+    - id: readiness_claims
+      prompt: >
+        Do deliverable_readiness and review summaries avoid final reporting,
+        decision-ready, confirmatory, dose-selection, or label-style claims?
+    - id: traceability
+      prompt: >
+        Can every action item be traced back to a source artifact, source core,
+        status, reason, and owner/review gate?
+    - id: reviewer_handoff
+      prompt: >
+        Is the handoff checklist specific enough for CP/statistics reviewers to
+        resolve gates without rerunning the whole pipeline?
+  output:
+    artifact: intermediate/06_reporting_review/core6_review_findings.csv
+    schema: [challenge, finding, severity, cited_artifact, cited_row, review_gate, recommended_action]
+    note: >
+      Advisory record. It does not close gates. Any `block` or `needs_review`
+      row must be surfaced in the final handoff summary.

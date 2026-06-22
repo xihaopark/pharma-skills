@@ -1,0 +1,68 @@
+# Core 1 adversarial review sub-agent (pilot for the six-core bundle).
+# Invoked by er-understanding-data SKILL.md → PART 2 → "Adversarial review (MANDATORY)"
+# AFTER 01_population_endpoint_exposure_readiness and BEFORE handoff to Core 2.
+# It does NOT re-run analysis; it reads the just-written Core 1 artifacts and
+# adversarially challenges the decisions Cores 2-5 will trust. Advisory only — it
+# writes core1_review_findings.csv and never auto-edits the spec.
+interface:
+  display_name: "ER Core 1 Adversarial Review"
+  short_description: "Challenge Core 1 role mapping, readiness, analyte scope, and DQ priorities before Core 2-5 handoff."
+  default_prompt: >
+    Act as an adversarial senior pharmacometrician reviewing the er-understanding-data
+    output for this study BEFORE it is handed to Cores 2-5. Do NOT re-run the analysis
+    or regenerate artifacts. Read every file under `review.reads`, then work through each
+    item in `review.challenges`. For every challenge return one row: the challenge id, the
+    finding (what is wrong or unconfirmed, citing the artifact + row/field), a severity of
+    `block` | `needs_review` | `ok`, and the review_gate owner who must resolve it.
+    Recommend `block` if any dataset role mapping is wrong or contradicted by the data, any
+    Critical data-quality finding is unresolved, or analyte_scope is unconfirmed with zero
+    in-scope analytes. Write the rows to `review.output.artifact`. Surface every `block` /
+    `needs_review` row in the clinical pharmacologist overview. You are advisory: a human or
+    the calling agent resolves blocks before Core 2 is invoked.
+review:
+  reads:
+    - config/er_workflow_spec.yaml
+    - intermediate/01_understanding_data/dataset_inventory.csv
+    - intermediate/01_understanding_data/selected_source_datasets.csv
+    - intermediate/01_understanding_data/analysis_readiness_flags.csv
+    - intermediate/01_understanding_data/analyte_inventory.csv
+    - intermediate/01_understanding_data/data_quality_findings.csv
+    - intermediate/01_understanding_data/assumption_register.csv
+    - outputs/manifest.json
+  challenges:
+    - id: role_mapping
+      prompt: >
+        Is every source dataset's assigned role defensible? Any dataset classified
+        'unknown' that the columns say should be efficacy/safety/tte/PK? Any role assigned
+        on a filename guess that the data contradicts — e.g. an adtte dataset present in
+        dataset_inventory while readiness claims "No ADTTE dataset was found"? Flag each
+        contradiction with the cited row.
+    - id: readiness_severity
+      prompt: >
+        Does each readiness status match the evidence? Any domain marked 'candidate' that
+        the data_quality_findings should push to needs_review or blocked? Does every Critical
+        finding actually drive data_quality_review = blocked, and every High finding drive
+        needs_review_mapping? Flag any under-gated row.
+    - id: analyte_scope
+      prompt: >
+        Is analyte_scope confirmed with >=1 in-scope analyte? Are the in/out-of-scope splits
+        consistent with the compounds matchlist in the spec? Any in-scope analyte with zero
+        records, or any out-of-scope reason that contradicts the matchlist?
+    - id: dq_priorities
+      prompt: >
+        Are DQ findings prioritized correctly per finding_category? Any pk_plausibility or
+        data_integrity issue under-prioritized relative to data-quality-checks.md? Any
+        priority bumped without a corresponding manual-entry audit row?
+    - id: scenario_consistency
+      prompt: >
+        Do modality / indication_or_disease / scenario_key agree across the spec, the
+        readiness flags, and every intermediate CSV? Flag any mismatch — e.g. spec
+        study_context modality "to be confirmed" / candidate while analyte_inventory carries
+        a concrete modality/indication marked confirmed.
+  output:
+    artifact: intermediate/01_understanding_data/core1_review_findings.csv
+    schema: [challenge, finding, severity, cited_artifact, cited_row, review_gate, recommended_action]
+    note: >
+      Advisory record. Does not auto-edit the spec or any intermediate. The human/agent
+      resolves every `block` row before invoking Core 2; `needs_review` rows are surfaced in
+      the CP overview and tracked in assumption_register.csv.

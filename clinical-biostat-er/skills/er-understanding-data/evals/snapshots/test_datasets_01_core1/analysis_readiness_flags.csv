@@ -1,0 +1,10 @@
+"domain","status","review_gate","modality","indication_or_disease","scenario_key"
+"population","candidate","Confirm analysis population and exclusions","ADC","oncology","adc__oncology"
+"dosing","candidate","Confirm dose grouping and time origin","ADC","oncology","adc__oncology"
+"pk_ck","candidate","Confirm PK/CK analytes, time scale, and BLQ/LLOQ handling","ADC","oncology","adc__oncology"
+"response_or_efficacy","candidate","Confirm endpoint and response definitions","ADC","oncology","adc__oncology"
+"safety","candidate","Confirm AESI groupings and grading rules","ADC","oncology","adc__oncology"
+"tte","candidate","Confirm event and censoring definitions","ADC","oncology","adc__oncology"
+"endpoint_inventory","candidate","Confirm endpoint semantics before modeling","ADC","oncology","adc__oncology"
+"exposure_inventory","candidate","Confirm exposure metric and window before modeling","ADC","oncology","adc__oncology"
+"data_quality_review","blocked","1 Critical, 3 High, 1 Moderate, 1 Low. Resolve Critical before Core 2.","ADC","oncology",
