@@ -1,4 +1,0 @@
-interface:
-  display_name: "ER Understanding Data"
-  short_description: "Inventory ER data and initialize the core workflow."
-  default_prompt: "Use $er-understanding-data to inventory this ER study, create the workflow spec, and initialize the annotated Rmd."

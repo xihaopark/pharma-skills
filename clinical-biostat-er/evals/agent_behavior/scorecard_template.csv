@@ -1,2 +1,0 @@
-run_id,case_id,date,claude_code_version,level,score_contract_grounding,score_local_file_inspection,score_artifact_evidence,score_review_gates,score_no_invention,score_validation_or_repro,score_failure_classification,total_score,notes
-example,01_reproduce_mock_dataset,YYYY-MM-DD,unknown,1,0,0,0,0,0,0,0,0,

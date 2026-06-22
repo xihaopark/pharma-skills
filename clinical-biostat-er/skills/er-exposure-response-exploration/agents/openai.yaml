@@ -1,4 +1,0 @@
-interface:
-  display_name: "ER Exploration"
-  short_description: "Build ER question matrices and exploration outputs."
-  default_prompt: "Use $er-exposure-response-exploration to check existing ER artifacts and build an endpoint-by-exposure question matrix."

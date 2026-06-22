@@ -1,4 +1,0 @@
-interface:
-  display_name: "ER Exposure Metrics"
-  short_description: "Prepare traceable ER exposure metric datasets."
-  default_prompt: "Use $er-exposure-metrics to check existing ER artifacts and prepare subject-level exposure metrics."

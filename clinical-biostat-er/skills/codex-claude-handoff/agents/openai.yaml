@@ -1,4 +1,0 @@
-interface:
-  display_name: "Codex-Claude Handoff"
-  short_description: "Prepare Claude-ready ER implementation handoffs."
-  default_prompt: "Use $codex-claude-handoff to turn this ER task into a Claude-ready implementation handoff with validation and review gates."

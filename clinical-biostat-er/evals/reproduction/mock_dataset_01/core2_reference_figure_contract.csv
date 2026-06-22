@@ -1,7 +1,0 @@
-reference_figure,source_rmd_function,source_rmd_cohort,source_rmd_analyte,title,plot_class,facet_ncol,width,height,reference_style_required,formal_gate_status
-swimmer_high_dose.png,create_swimmer_plot,DrugA High Dose,,Dosing of High Dose group,swimmer_event_overlay,,16,9,TRUE,needs_review
-swimmer_low_dose.png,create_swimmer_plot,DrugA Low Dose,,Dosing of Low Dose group,swimmer_event_overlay,,16,9,TRUE,needs_review
-20250925_pkind6.png,create_individual_pk_plot,DrugA High Dose,"Analyte1, Intact, Quant (ug/mL)",Individual PK data (intact ADC) for patients in High Dose dose group,individual_profile,8,16,9,TRUE,needs_review
-20250925_pkind4.png,create_individual_pk_plot,DrugA Low Dose,"Analyte1, Intact, Quant (ug/mL)",Individual PK data (intact ADC) for patients in Low Dose dose group,individual_profile,7,16,9,TRUE,needs_review
-pkind_payload_high_dose.png,create_individual_pk_plot,DrugA High Dose,"Analyte1, payload, Quant (ng/mL)",Individual PK data (payload) for patients in High Dose dose group,individual_profile,8,16,9,TRUE,needs_review
-pkind_payload_low_dose.png,create_individual_pk_plot,DrugA Low Dose,"Analyte1, payload, Quant (ng/mL)",Individual PK data (payload) for patients in Low Dose dose group,individual_profile,7,16,9,TRUE,needs_review

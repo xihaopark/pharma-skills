@@ -1,4 +1,0 @@
-interface:
-  display_name: "ER Statistical Modeling"
-  short_description: "Fit readiness-checked exploratory ER models."
-  default_prompt: "Use $er-statistical-modeling to check existing ER artifacts and run readiness-gated statistical models."

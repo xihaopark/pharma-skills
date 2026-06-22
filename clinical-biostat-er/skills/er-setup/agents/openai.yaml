@@ -1,4 +1,0 @@
-interface:
-  display_name: "ER Setup"
-  short_description: "Set up Claude skills and Rmd editing"
-  default_prompt: "Use $er-setup to configure this ER repo for Claude bundle skills and VS Code Rmd support on your OS (macOS, Windows, or Linux), and to check your branch against the governed main bundle."

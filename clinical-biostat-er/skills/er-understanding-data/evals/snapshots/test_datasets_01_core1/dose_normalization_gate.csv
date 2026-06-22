@@ -1,2 +1,0 @@
-"gate","dose_proportionality_status","dose_normalized_comparison_allowed","status","review_gate","modality","indication_or_disease","scenario_key"
-"dose_normalization","unknown","no","needs_review","Confirm dose proportionality (PK linearity) with CP/pharmacometrics before any dose-normalized concentration comparison; Core 1 does not assume dose proportionality.","ADC","oncology",

@@ -1,4 +1,0 @@
-interface:
-  display_name: "ER Individual PK/PD Review"
-  short_description: "Review subject-level PK, PD, CK, and event timelines."
-  default_prompt: "Use $er-individual-pk-pd-review to check existing ER artifacts and create individual PK/PD or CK review outputs."

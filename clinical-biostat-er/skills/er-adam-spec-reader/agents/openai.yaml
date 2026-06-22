@@ -1,4 +1,0 @@
-interface:
-  display_name: "ER ADaM Spec Reader"
-  short_description: "Read an ADaM specification workbook and surface dataset, variable, and PARAMCD information for Core 1 ingestion."
-  default_prompt: "Use $er-adam-spec-reader to ingest an ADaM specification workbook (when the study provides one) and write the dataset metadata, variable inventory, and PARAMCD dictionary intermediates that Core 1 consumes."
